@@ -125,7 +125,7 @@ function shatter(x_lim, y_lim, shatter_pt, n_pts = 20, connections = 1) {
     // connect the points randomly, create <connections> line per point
     const shatter_lines = [];
     for (let i = 0; i < n_pts; i++) {
-        seen = []
+        let seen = []
         for (let c = 0; c < connections; c++) {
             let j = Math.floor(Math.random() * n_pts);
             if (j === i) {
