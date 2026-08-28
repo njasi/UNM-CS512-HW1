@@ -57,8 +57,8 @@ class Shard {
  * @returns {(float32, float32)}
  */
 function lineIntersection(line1, line2, tolerance = TOLERANCE) {
-    let((x1, y1), (x2, y2)) = line1;
-    let((x3, y3), (x4, y4)) = line2;
+    let [[x1, y1], [x2, y2]] = line1;
+    let [[x3, y3], [x4, y4]] = line2;
 
     const D = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
 
@@ -81,10 +81,50 @@ function lineIntersection(line1, line2, tolerance = TOLERANCE) {
  * 
  * @returns {[(float32, float32), (float32, float32)]}      The clipped line
  */
-function clipLineToRectangle(line, x_lim, y_lim) {
-    // TODO
-    // use line intersection with the bounding 
-    // lines of the rect to find the clipped lines
+function clipLineToRectangle(line, x_lim, y_lim, tolerance = TOLERANCE) {
+    let [[x1, y1], [x2, y2]] = line;
+
+    const dx = x1 - x2;
+    const dy = y1 - y2;
+
+    const possible = [];
+
+    // again stop dividing by near 0
+    if (Math.abs(dx) > tolerance) {
+        // the left wall & right wall
+        possible.push([0, y1 + (-x1 / dx) * dy]);
+        possible.push([x_lim, y1 + ((x_lim - x1) / dx) * dy]);
+    }
+    if (Math.abs(dy) > tolerance) {
+        // the top wall & the bottom wall
+        possible.push([x1 + (-y1 / dy) * dx, 0])
+        possible.push([x1 + ((y_lim - y1 / dy)), y_lim])
+    }
+
+    // only keep the points that are still in the filter
+    const valid = possible.filter((pt, i) => {
+        const [x, y] = pt;
+        return x >= -tolerance &&
+            x <= x_lim + tolerance &&
+            y >= -tolerance &&
+            y <= y_lim + tolerance;
+    })
+
+    // ensure we dont get duplicates from hitting corners
+    const unique = [];
+    for (let i = 0; i < valid.length; i++) {
+        const point = valid[i];
+
+        const isDuplicate = unique.some(other =>
+            Math.hypot(point[0] - other[0], point[1] - other[1]) <= tolerance
+        );
+
+        if (!isDuplicate) {
+            unique.push(point);
+        }
+    }
+
+    return unique >= 2 ? [unique[0], unique[1]] : null;
 }
 
 /**
