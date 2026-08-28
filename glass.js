@@ -16,6 +16,8 @@
  */
 
 
+const TOLERANCE = 0.0001
+
 class Shard {
     constructor(points, speed) {
         // float32 arrays for points & colors
@@ -54,8 +56,20 @@ class Shard {
  * 
  * @returns {(float32, float32)}
  */
-function lineIntersection(line1, line2) {
-    // TODO solve for the intersection of two lines
+function lineIntersection(line1, line2, tolerance = TOLERANCE) {
+    let((x1, y1), (x2, y2)) = line1;
+    let((x3, y3), (x4, y4)) = line2;
+
+    const D = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+
+    // stop near dividing by 0
+    if (Math.abs(D) < tolerance) {
+        return null;
+    }
+
+    const x = ((x1 * y2 - y2 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / D;
+    const y = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / D;
+    return [x, y];
 }
 
 /**
@@ -113,6 +127,8 @@ function findFaces(lines, x_lim, y_lim) {
  * @param {(float32,float32)} shatter_pt    The origin point of the shatter (shards fall away from this)
  * @param {int} n_pts                       The number of points to generate
  * @param {int} connections                 The number of connections per point to make
+ * 
+ * @returns {[Shard]}                       List of shard objects
  */
 function shatter(x_lim, y_lim, shatter_pt, n_pts = 20, connections = 1) {
     // TODO:
@@ -155,6 +171,10 @@ function shatter(x_lim, y_lim, shatter_pt, n_pts = 20, connections = 1) {
     // if we use, then initialize the shards with random speed which faces away from shatter_pt
 
     // TODO: anyway we then map the faces to Shards & return them if we use this
+    return faces.map((face) => {
+        // TODO map to shards
+        return Shard()
+    })
 }
 
 
