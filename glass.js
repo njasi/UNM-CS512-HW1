@@ -1,6 +1,6 @@
 /**
  * helper file to simulate shattering of 'glass'
- * 
+ *
  * instead of using a accurate algorithm I think we will do the following
  * - choose a starting 2d range (consider this our initial 'glass' panel)
  * - choose N random points in the range
@@ -10,138 +10,138 @@
  *      - iterate through all created lines & check against all the other lines
  *      - need to remember the edges of the bounds count as lines as well
  *      - also only calculate shapes in the range
- * 
- * There isn't any guarantee of regularity if we use 
+ *
+ * There isn't any guarantee of regularity if we use
  * this setup but it should look broken enough lol
- * 
+ *
  * Also big bonus here, we dont need 100% correctness and 90% correctness wont even look weird
  */
 
-
-const TOLERANCE = 0.0001
+const TOLERANCE = 0.0001;
 
 class Shard {
-    constructor(points, speed) {
-        // float32 arrays for points & colors
-        this.points = points;
-        this.colors = [] // TODO choose random colors 
+  constructor(points, speed) {
+    // float32 arrays for points & colors
+    this.points = points;
+    this.colors = []; // TODO choose random colors
 
-        // float32 2vec for speed [x,y]
-        this.speed = speed;
+    // float32 2vec for speed [x,y]
+    this.speed = speed;
 
-        // TODO random rotation speed
-        // might be easier to store this as rotation matrix
-        this.rotation = 0.0
-    }
+    // TODO random rotation speed
+    // might be easier to store this as rotation matrix
+    this.rotation = 0.0;
+  }
 
-    /**
-     * Update the position based on its existing speed vector
-     * 
-     * move all the points, and update the speed vec
-     */
-    update(timestep) {
+  /**
+   * Update the position based on its existing speed vector
+   *
+   * move all the points, and update the speed vec
+   */
+  update(timestep) {
+    // TODO: update position (add speed vec)
 
-        // TODO: update position (add speed vec)
+    // TODO: update rotation (apply rot matrix)
 
-        // TODO: update rotation (apply rot matrix)
-
-        // update the speed, ie pull it down via gravity
-        this.speed[1] -= 9.81 * timestep
-    }
+    // update the speed, ie pull it down via gravity
+    this.speed[1] -= 9.81 * timestep;
+  }
 }
 
 /**
  * Find the distance between two points
- * @param {(float32, float32)} a 
- * @param {(float32, float32)} b 
- * @returns 
+ * @param {(float32, float32)} a
+ * @param {(float32, float32)} b
+ * @returns
  */
-function dist(a, b){
-    return Math.hypot(a[0] - b[0], a[1] - b[1])
+function dist(a, b) {
+  return Math.hypot(a[0] - b[0], a[1] - b[1]);
 }
 
 /**
  * Find the intersection point of two lines
- * 
- * @param {[(float32, float32), (float32, float32)]} line1 
- * @param {[(float32, float32), (float32, float32)]} line2 
- * 
+ *
+ * @param {[(float32, float32), (float32, float32)]} line1
+ * @param {[(float32, float32), (float32, float32)]} line2
+ *
  * @returns {(float32, float32)}
  */
 function lineIntersection(line1, line2, tolerance = TOLERANCE) {
-    let [[x1, y1], [x2, y2]] = line1;
-    let [[x3, y3], [x4, y4]] = line2;
+  let [[x1, y1], [x2, y2]] = line1;
+  let [[x3, y3], [x4, y4]] = line2;
 
-    const D = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+  const D = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
 
-    // stop near dividing by 0
-    if (Math.abs(D) < tolerance) {
-        return null;
-    }
+  // stop near dividing by 0
+  if (Math.abs(D) < tolerance) {
+    return null;
+  }
 
-    const x = ((x1 * y2 - y2 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / D;
-    const y = ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / D;
-    return [x, y];
+  const x =
+    ((x1 * y2 - y2 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / D;
+  const y =
+    ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / D;
+  return [x, y];
 }
 
 /**
  * Bound a line inside the rectangle we define
- * 
- * @param {[(float32, float32), (float32, float32)]} line   The line    
+ *
+ * @param {[(float32, float32), (float32, float32)]} line   The line
  * @param {float32} x_lim                                   The x limit of the rect
  * @param {float32} y_lim                                   The y lmit of the rect
- * 
+ *
  * @returns {[(float32, float32), (float32, float32)]}      The clipped line
  */
 function clipLineToRectangle(line, x_lim, y_lim, tolerance = TOLERANCE) {
-    let [[x1, y1], [x2, y2]] = line;
+  let [[x1, y1], [x2, y2]] = line;
 
-    const dx = x1 - x2;
-    const dy = y1 - y2;
+  const dx = x1 - x2;
+  const dy = y1 - y2;
 
-    const possible = [];
+  const possible = [];
 
-    // again stop dividing by near 0
-    if (Math.abs(dx) > tolerance) {
-        // the left wall & right wall
-        possible.push([0, y1 + (-x1 / dx) * dy]);
-        possible.push([x_lim, y1 + ((x_lim - x1) / dx) * dy]);
+  // again stop dividing by near 0
+  if (Math.abs(dx) > tolerance) {
+    // the left wall & right wall
+    possible.push([0, y1 + (-x1 / dx) * dy]);
+    possible.push([x_lim, y1 + ((x_lim - x1) / dx) * dy]);
+  }
+  if (Math.abs(dy) > tolerance) {
+    // the top wall & the bottom wall
+    possible.push([x1 + (-y1 / dy) * dx, 0]);
+    possible.push([x1 + (y_lim - y1 / dy), y_lim]);
+  }
+
+  // only keep the points that are still in the filter
+  const valid = possible.filter((pt, i) => {
+    const [x, y] = pt;
+    return (
+      x >= -tolerance &&
+      x <= x_lim + tolerance &&
+      y >= -tolerance &&
+      y <= y_lim + tolerance
+    );
+  });
+
+  // ensure we dont get duplicates from hitting corners
+  const unique = [];
+  for (let i = 0; i < valid.length; i++) {
+    const point = valid[i];
+
+    const isDuplicate = unique.some((other) => dist(point, other) <= tolerance);
+
+    if (!isDuplicate) {
+      unique.push(point);
     }
-    if (Math.abs(dy) > tolerance) {
-        // the top wall & the bottom wall
-        possible.push([x1 + (-y1 / dy) * dx, 0])
-        possible.push([x1 + ((y_lim - y1 / dy)), y_lim])
-    }
+  }
 
-    // only keep the points that are still in the filter
-    const valid = possible.filter((pt, i) => {
-        const [x, y] = pt;
-        return x >= -tolerance &&
-            x <= x_lim + tolerance &&
-            y >= -tolerance &&
-            y <= y_lim + tolerance;
-    })
-
-    // ensure we dont get duplicates from hitting corners
-    const unique = [];
-    for (let i = 0; i < valid.length; i++) {
-        const point = valid[i];
-
-        const isDuplicate = unique.some(other =>
-            dist(point, other) <= tolerance
-        );
-
-        if (!isDuplicate) {
-            unique.push(point);
-        }
-    }
-
-    return unique >= 2 ? [unique[0], unique[1]] : null;
+  return unique >= 2 ? [unique[0], unique[1]] : null;
 }
 
 /**
  * Construct adjacency list from line intersection points
- * 
+ *
  * @param {[[(float32, float32), (float32, float32)]]} lines    The set of lines we want to transform into a graph
  * @param {*} x_lim                                             The x limit of the rect
  * @param {*} y_lim                                             The y limit of the rect
@@ -149,190 +149,201 @@ function clipLineToRectangle(line, x_lim, y_lim, tolerance = TOLERANCE) {
  * @returns {[[[int]], [(float32,float32)]]}                    Adjacency list, and the list of verticies with their actual positions
  */
 function makeAdjacency(lines, x_lim, y_lim, tolerance = TOLERANCE) {
-    // start by adding bounding lines so shards on edges have all the faces needed
-    lines.push(
-        [[0, 0], [x_lim, 0]],
-        [[x_lim, 0], [x_lim, y_lim]],
-        [[x_lim, y_lim], [0, y_lim]],
-        [[0, y_lim], [0, 0]]
-    );
+  // start by adding bounding lines so shards on edges have all the faces needed
+  lines.push(
+    [
+      [0, 0],
+      [x_lim, 0],
+    ],
+    [
+      [x_lim, 0],
+      [x_lim, y_lim],
+    ],
+    [
+      [x_lim, y_lim],
+      [0, y_lim],
+    ],
+    [
+      [0, y_lim],
+      [0, 0],
+    ],
+  );
 
-    const lineBreakdown = lines.map(l => [[...l[0]], [...l[1]]]);
+  const lineBreakdown = lines.map((l) => [[...l[0]], [...l[1]]]);
 
-    // calculate all intersections, ie compare every line to every line
-    // add all intersections to the lines array or a copy
-    for (let i = 0; i < lines.length; i++) {
-        for (let j = i + 1; j < lines.length; j++) {
-            const pt = lineIntersection(lines[i], lines[j]);
+  // calculate all intersections, ie compare every line to every line
+  // add all intersections to the lines array or a copy
+  for (let i = 0; i < lines.length; i++) {
+    for (let j = i + 1; j < lines.length; j++) {
+      const pt = lineIntersection(lines[i], lines[j]);
 
-            // extra check to ensure within bounds, 
-            // may be able to reasonably drop this later
-            if (pt && pt[0] >= -tolerance && 
-                pt[0] <= x_lim + tolerance && 
-                pt[1] >= -tolerance && 
-                pt[1] <= y_lim + tolerance) {
-
-                lineBreakdown[i].push(pt);
-                lineBreakdown[j].push(pt);
-            }
-        }
+      // extra check to ensure within bounds,
+      // may be able to reasonably drop this later
+      if (
+        pt &&
+        pt[0] >= -tolerance &&
+        pt[0] <= x_lim + tolerance &&
+        pt[1] >= -tolerance &&
+        pt[1] <= y_lim + tolerance
+      ) {
+        lineBreakdown[i].push(pt);
+        lineBreakdown[j].push(pt);
+      }
     }
+  }
 
-    // form the multi point lines into segments, 
-    // which will form the edges on the graph
-    const rawEdges = [];
-    lineBreakdown.forEach((pts, i) => {
-        const [start, end] = lines[i];
-        const dx = end[0] - start[0];
-        const dy = end[1] - start[1];
+  // form the multi point lines into segments,
+  // which will form the edges on the graph
+  const rawEdges = [];
+  lineBreakdown.forEach((pts, i) => {
+    const [start, end] = lines[i];
+    const dx = end[0] - start[0];
+    const dy = end[1] - start[1];
 
-        pts.sort((a, b) => {
-            // make the direction vecs for the two points
-            const delta_a = [a[0] - start[0], a[1] - start[1]];
-            const delta_b = [b[0] - start[0], b[1] - start[1]];
+    pts.sort((a, b) => {
+      // make the direction vecs for the two points
+      const delta_a = [a[0] - start[0], a[1] - start[1]];
+      const delta_b = [b[0] - start[0], b[1] - start[1]];
 
-            // calculate the dot product against the direction vec
-            // angles are the same so dist is the only remaining factor
-            const dot_a = delta_a[0] * dx + delta_a[1] * dy
-            const dot_b = delta_b[0] * dx + delta_b[1] * dy
+      // calculate the dot product against the direction vec
+      // angles are the same so dist is the only remaining factor
+      const dot_a = delta_a[0] * dx + delta_a[1] * dy;
+      const dot_b = delta_b[0] * dx + delta_b[1] * dy;
 
-            // larger dot product should mean further away if they are
-            // in line with the direction vec
-            // could have used standard distance but not sure how id handle 
-            // if there were points to the left and the right of a position...
-            // shouldnt happen here since each line should start at one of the limits
-            // of the rectangle but i don't trust that
-            return dot_a - dot_b
-            }
-        );
-
-        for (let k = 0; k < pts.length - 1; k++) {
-            // if the points are not touching add their edge to the list
-            // if 3 in a row are "touching" this might break idk
-            if (dist(pts[k], pts[k + 1]) >= tolerance) {
-                rawEdges.push([pts[k], pts[k + 1]]);
-            }
-        }
+      // larger dot product should mean further away if they are
+      // in line with the direction vec
+      // could have used standard distance but not sure how id handle
+      // if there were points to the left and the right of a position...
+      // shouldnt happen here since each line should start at one of the limits
+      // of the rectangle but i don't trust that
+      return dot_a - dot_b;
     });
 
-    // helper func to track vertices changes
-    // would also remove non unique ones if we missed any in filtering i guess
-    const vertices = [];
-    const adjacency = [];
-    const getVertexIdx = (pt) => {
+    for (let k = 0; k < pts.length - 1; k++) {
+      // if the points are not touching add their edge to the list
+      // if 3 in a row are "touching" this might break idk
+      if (dist(pts[k], pts[k + 1]) >= tolerance) {
+        rawEdges.push([pts[k], pts[k + 1]]);
+      }
+    }
+  });
 
-        // if a point is really close we count it as the same vert
-        // should be okkkkk
-        // really should have made this differently
-        let idx = vertices.findIndex(v => dist(v, pt) < tolerance);
-        if (idx === -1) {
-            idx = vertices.length;
+  // helper func to track vertices changes
+  // would also remove non unique ones if we missed any in filtering i guess
+  const vertices = [];
+  const adjacency = [];
+  const getVertexIdx = (pt) => {
+    // if a point is really close we count it as the same vert
+    // should be okkkkk
+    // really should have made this differently
+    let idx = vertices.findIndex((v) => dist(v, pt) < tolerance);
+    if (idx === -1) {
+      idx = vertices.length;
 
-            // add the new vert and its list
-            vertices.push(pt);
-            adjacency.push([])
-        }
-        return idx;
-    };
+      // add the new vert and its list
+      vertices.push(pt);
+      adjacency.push([]);
+    }
+    return idx;
+  };
 
-    // make the actual adjacency list of intersections
-    rawEdges.forEach(([a, b]) => {
-        const u = getVertexIdx(a);
-        const v = getVertexIdx(b);
-        if (u !== v) {
-            adjacency[u].push(v);
-            adjacency[v].push(u);
-        }
-    });
+  // make the actual adjacency list of intersections
+  rawEdges.forEach(([a, b]) => {
+    const u = getVertexIdx(a);
+    const v = getVertexIdx(b);
+    if (u !== v) {
+      adjacency[u].push(v);
+      adjacency[v].push(u);
+    }
+  });
 
-    return [adjacency, vertices];
+  return [adjacency, vertices];
 }
 
-
 /**
- * find the faces in a graph from an adjacency list and the real position of vertices 
+ * find the faces in a graph from an adjacency list and the real position of vertices
  * ie basically using verticies to ensure the correct planar embedding
- * 
- * @param {*} adjacency     the adjacency list of intersections 
- * @param {*} vertices      the list of actual intersection coords
- * @param {*} tolerance     physical tolerance we accept as 0
- * 
+ *
+ * @param {[[int]]} adjacency               the adjacency list of intersections
+ * @param {[(float32,float32)]} vertices    the list of actual intersection coords
+ * @param {float32} tolerance               physical tolerance we accept as 0
+ *
  * @returns {[[(float32, float32)]]}  A list of the faces found, ie ragged list of list of points
  */
 function findFaces(adjacency, vertices, tolerance = TOLERANCE) {
-    // TODO find proper explanation of this algorithm
-
-    // sorting around each vertex by angle
-
-    // walk the edges via the sorted adj list to find faces
-
-    // ....
-
-    // magic list of faces?
+  // TODO find proper explanation of this algorithm
+  // sorting around each vertex by angle
+  // walk the edges via the sorted adj list to find faces
+  // ....
+  // magic list of faces?
 }
-
 
 /**
  * Create a list of Shards given an area and a shatter origin point
- * 
+ *
  * @param {float32} x_lim                   The positive X limit of the rectangle
  * @param {float32} y_lim                   The positive Y limit of the rectangle
  * @param {(float32,float32)} shatter_pt    The origin point of the shatter (shards fall away from this)
  * @param {int} n_pts                       The number of points to generate
  * @param {int} connections                 The number of connections per point to make
- * 
+ *
  * @returns {[Shard]}                       List of shard objects
  */
 function shatter(x_lim, y_lim, shatter_pt, n_pts = 20, connections = 1) {
-    // TODO:
+  // TODO:
 
-    // Ensure that connections < n_pts
+  // Ensure that connections < n_pts
 
-    // Generate list of random points in the range ie 0,x_lim ; 0, y_lim
-    const points = [...Array(n_pts)].map((_) => [Math.random() * x_lim, Math.random() * y_lim])
+  // Generate list of random points in the range ie 0,x_lim ; 0, y_lim
+  const points = [...Array(n_pts)].map((_) => [
+    Math.random() * x_lim,
+    Math.random() * y_lim,
+  ]);
 
-    // connect the points randomly, create <connections> line per point
-    let shatter_lines = [];
-    for (let i = 0; i < n_pts; i++) {
-        let seen = []
-        for (let c = 0; c < connections; c++) {
-            let j = Math.floor(Math.random() * n_pts);
-            if (j === i) {
-                j = (j + 1) % n_pts;
+  // connect the points randomly, create <connections> line per point
+  let shatter_lines = [];
+  for (let i = 0; i < n_pts; i++) {
+    let seen = [];
+    for (let c = 0; c < connections; c++) {
+      let j = Math.floor(Math.random() * n_pts);
+      if (j === i) {
+        j = (j + 1) % n_pts;
 
-                // hmm might get stucj in infinite loop if connections >= n_pts, so
-                // let us ensure it remains less than
-                if (seen.includes(j)) {
-                    c--;
-                    continue;
-                }
-                seen.push(j);
-            }
-            shatter_lines.push([points[i], points[j]]);
+        // hmm might get stucj in infinite loop if connections >= n_pts, so
+        // let us ensure it remains less than
+        if (seen.includes(j)) {
+          c--;
+          continue;
         }
+        seen.push(j);
+      }
+      shatter_lines.push([points[i], points[j]]);
     }
+  }
 
-    // TODO: maybe add lines flaring out from shatter_pt to get a free representation of where the 
-    //       whatter starts
+  // TODO: maybe add lines flaring out from shatter_pt to get a free representation of where the
+  //       whatter starts
 
-    // calculate all intersections between the lines and the limits
-    // NOTE: will all clipped lines still be within the rectangle?
-    shatter_lines = shatter_lines.map((line) => clipLineToRectangle(line, x_lim, y_lim));
+  // calculate all intersections between the lines and the limits
+  // NOTE: will all clipped lines still be within the rectangle?
+  shatter_lines = shatter_lines.map((line) =>
+    clipLineToRectangle(line, x_lim, y_lim),
+  );
 
-    // create adjacency list and the list of vertices with actual positions
-    const [adjacency, vertices] = makeAdjacency(shatter_lines, x_lim, y_lim);
+  // create adjacency list and the list of vertices with actual positions
+  const [adjacency, vertices] = makeAdjacency(shatter_lines, x_lim, y_lim);
 
-    // find the faces in the adjacency list, use the actual positions
-    // in vertices to make the planar representation 
-    const faces = findFaces(adjacency, vertices);
+  // find the faces in the adjacency list, use the actual positions
+  // in vertices to make the planar representation
+  const faces = findFaces(adjacency, vertices);
 
-    // unsure at this point but maybe we use the above class for updating
-    // will have to look at how the rest of the webgl js setup works in HW 1.html
-    // if we use, then initialize the shards with random speed which faces away from shatter_pt
+  // unsure at this point but maybe we use the above class for updating
+  // will have to look at how the rest of the webgl js setup works in HW 1.html
+  // if we use, then initialize the shards with random speed which faces away from shatter_pt
 
-    // TODO: anyway we then map the faces to Shards & return them if we use this
-    return faces.map((face) => {
-        // TODO map to shards
-        return Shard()
-    })
+  // TODO: anyway we then map the faces to Shards & return them if we use this
+  return faces.map((face) => {
+    // TODO map to shards
+    return Shard();
+  });
 }
