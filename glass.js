@@ -13,6 +13,8 @@
  * 
  * There isn't any guarantee of regularity if we use 
  * this setup but it should look broken enough lol
+ * 
+ * Also big bonus here, we dont need 100% correctness and 90% correctness wont even look weird
  */
 
 
@@ -46,6 +48,16 @@ class Shard {
         // update the speed, ie pull it down via gravity
         this.speed[1] -= 9.81 * timestep
     }
+}
+
+/**
+ * Find the distance between two points
+ * @param {(float32, float32)} a 
+ * @param {(float32, float32)} b 
+ * @returns 
+ */
+function dist(a, b){
+    return Math.hypot(a[0] - b[0], a[1] - b[1])
 }
 
 /**
@@ -116,7 +128,7 @@ function clipLineToRectangle(line, x_lim, y_lim, tolerance = TOLERANCE) {
         const point = valid[i];
 
         const isDuplicate = unique.some(other =>
-            Math.hypot(point[0] - other[0], point[1] - other[1]) <= tolerance
+            dist(point, other) <= tolerance
         );
 
         if (!isDuplicate) {
@@ -128,34 +140,135 @@ function clipLineToRectangle(line, x_lim, y_lim, tolerance = TOLERANCE) {
 }
 
 /**
- * Find the faces contained within the lines
+ * Construct adjacency list from line intersection points
  * 
- * @param {[[float32]]} lines   The calculated shatter lines
- * @param {*} x_lim              The x limit of the rect
- * @param {*} y_lim              The y lmit of the rect
+ * @param {[[(float32, float32), (float32, float32)]]} lines    The set of lines we want to transform into a graph
+ * @param {*} x_lim                                             The x limit of the rect
+ * @param {*} y_lim                                             The y limit of the rect
+ * @param {*} tolerance                                         Allowable tolerance
+ * @returns {[[[int]], [(float32,float32)]]}                    Adjacency list, and the list of verticies with their actual positions
+ */
+function makeAdjacency(lines, x_lim, y_lim, tolerance = TOLERANCE) {
+    // start by adding bounding lines so shards on edges have all the faces needed
+    lines.push(
+        [[0, 0], [x_lim, 0]],
+        [[x_lim, 0], [x_lim, y_lim]],
+        [[x_lim, y_lim], [0, y_lim]],
+        [[0, y_lim], [0, 0]]
+    );
+
+    const lineBreakdown = lines.map(l => [[...l[0]], [...l[1]]]);
+
+    // calculate all intersections, ie compare every line to every line
+    // add all intersections to the lines array or a copy
+    for (let i = 0; i < lines.length; i++) {
+        for (let j = i + 1; j < lines.length; j++) {
+            const pt = lineIntersection(lines[i], lines[j]);
+
+            // extra check to ensure within bounds, 
+            // may be able to reasonably drop this later
+            if (pt && pt[0] >= -tolerance && 
+                pt[0] <= x_lim + tolerance && 
+                pt[1] >= -tolerance && 
+                pt[1] <= y_lim + tolerance) {
+
+                lineBreakdown[i].push(pt);
+                lineBreakdown[j].push(pt);
+            }
+        }
+    }
+
+    // form the multi point lines into segments, 
+    // which will form the edges on the graph
+    const rawEdges = [];
+    lineBreakdown.forEach((pts, i) => {
+        const [start, end] = lines[i];
+        const dx = end[0] - start[0];
+        const dy = end[1] - start[1];
+
+        pts.sort((a, b) => {
+            // make the direction vecs for the two points
+            const delta_a = [a[0] - start[0], a[1] - start[1]];
+            const delta_b = [b[0] - start[0], b[1] - start[1]];
+
+            // calculate the dot product against the direction vec
+            // angles are the same so dist is the only remaining factor
+            const dot_a = delta_a[0] * dx + delta_a[1] * dy
+            const dot_b = delta_b[0] * dx + delta_b[1] * dy
+
+            // larger dot product should mean further away if they are
+            // in line with the direction vec
+            // could have used standard distance but not sure how id handle 
+            // if there were points to the left and the right of a position...
+            // shouldnt happen here since each line should start at one of the limits
+            // of the rectangle but i don't trust that
+            return dot_a - dot_b
+            }
+        );
+
+        for (let k = 0; k < pts.length - 1; k++) {
+            // if the points are not touching add their edge to the list
+            // if 3 in a row are "touching" this might break idk
+            if (dist(pts[k], pts[k + 1]) >= tolerance) {
+                rawEdges.push([pts[k], pts[k + 1]]);
+            }
+        }
+    });
+
+    // helper func to track vertices changes
+    // would also remove non unique ones if we missed any in filtering i guess
+    const vertices = [];
+    const adjacency = [];
+    const getVertexIdx = (pt) => {
+
+        // if a point is really close we count it as the same vert
+        // should be okkkkk
+        // really should have made this differently
+        let idx = vertices.findIndex(v => dist(v, pt) < tolerance);
+        if (idx === -1) {
+            idx = vertices.length;
+
+            // add the new vert and its list
+            vertices.push(pt);
+            adjacency.push([])
+        }
+        return idx;
+    };
+
+    // make the actual adjacency list of intersections
+    rawEdges.forEach(([a, b]) => {
+        const u = getVertexIdx(a);
+        const v = getVertexIdx(b);
+        if (u !== v) {
+            adjacency[u].push(v);
+            adjacency[v].push(u);
+        }
+    });
+
+    return [adjacency, vertices];
+}
+
+
+/**
+ * find the faces in a graph from an adjacency list and the real position of vertices 
+ * ie basically using verticies to ensure the correct planar embedding
+ * 
+ * @param {*} adjacency     the adjacency list of intersections 
+ * @param {*} vertices      the list of actual intersection coords
+ * @param {*} tolerance     physical tolerance we accept as 0
  * 
  * @returns {[[(float32, float32)]]}  A list of the faces found, ie ragged list of list of points
  */
-function findFaces(lines, x_lim, y_lim) {
-    // TODO 
-    // not sure how to do this one...
-    // might just brute force it, should be doable?
-    // - if brute force is slow we can precalculate this 
-    //   before the button is even clicked lol
-    // - if brute forcing do i need a margin of error to bake in?
-    //   this is fine since its supposed to look broken anyway
-    // 
-    // or can probably turn this into a normal graph 
-    // problem and use a real algrithm?
-    // 
-    // - build intersections into adjacency list
-    // - .....
-    // - find faces
-    // 
-    // theres def an existing algorithm for this look it up later
-    // - these should be guaranteed to be planar graphs since we construct from a 
-    //   plane in the first place...
+function findFaces(adjacency, vertices, tolerance = TOLERANCE) {
+    // TODO find proper explanation of this algorithm
 
+    // sorting around each vertex by angle
+
+    // walk the edges via the sorted adj list to find faces
+
+    // ....
+
+    // magic list of faces?
 }
 
 
@@ -179,7 +292,7 @@ function shatter(x_lim, y_lim, shatter_pt, n_pts = 20, connections = 1) {
     const points = [...Array(n_pts)].map((_) => [Math.random() * x_lim, Math.random() * y_lim])
 
     // connect the points randomly, create <connections> line per point
-    const shatter_lines = [];
+    let shatter_lines = [];
     for (let i = 0; i < n_pts; i++) {
         let seen = []
         for (let c = 0; c < connections; c++) {
@@ -199,12 +312,19 @@ function shatter(x_lim, y_lim, shatter_pt, n_pts = 20, connections = 1) {
         }
     }
 
+    // TODO: maybe add lines flaring out from shatter_pt to get a free representation of where the 
+    //       whatter starts
+
     // calculate all intersections between the lines and the limits
     // NOTE: will all clipped lines still be within the rectangle?
-    shatter_lines = shatter_lines.map((line) => clipLineToRectangle(line, x_lim, y_lim))
+    shatter_lines = shatter_lines.map((line) => clipLineToRectangle(line, x_lim, y_lim));
 
-    // return the shapes created by the line divisions
-    faces = findFaces(shatter_lines, x_lim, y_lim)
+    // create adjacency list and the list of vertices with actual positions
+    const [adjacency, vertices] = makeAdjacency(shatter_lines, x_lim, y_lim);
+
+    // find the faces in the adjacency list, use the actual positions
+    // in vertices to make the planar representation 
+    const faces = findFaces(adjacency, vertices);
 
     // unsure at this point but maybe we use the above class for updating
     // will have to look at how the rest of the webgl js setup works in HW 1.html
@@ -216,6 +336,3 @@ function shatter(x_lim, y_lim, shatter_pt, n_pts = 20, connections = 1) {
         return Shard()
     })
 }
-
-
-
