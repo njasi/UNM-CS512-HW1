@@ -2,12 +2,12 @@
 Fall 2026
 
 ## TODO:
-- [ ] Investigate the full code in HW1.html (renamed to index.html)
-- [ ] Implement shattering 'algorithm'
-- [ ] Link the shattered shapes into index.html
-    - [ ] figure out how to apply the shaders to each shape
-        - [ ] color
-        - [ ] vertex
+- [x] Investigate the full code in HW1.html (renamed to index.html)
+- [x] Implement shattering 'algorithm'
+- [x] Link the shattered shapes into index.html
+    - [x] figure out how to apply the shaders to each shape
+        - [x] color
+        - [x] vertex
     - [ ] apply the update function to move the shapes
     - [ ] add random spin to the shards
 - [ ] add shatter button to index.html
