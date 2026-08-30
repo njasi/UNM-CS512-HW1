@@ -77,6 +77,7 @@
   </script>
 
   <script src="./triangle.js"></script>
+  <script src="./glass.js"></script>
 
   <script>
     function createShader(gl, type, source) {
@@ -122,15 +123,26 @@
     let program, posLoc, colorLoc, timeLoc;
     let posBuffer, colorBuffer;
 
+    // -- Shards Init ---
+
+    // TODO later we make the shards with shatter, 
+    // shards = shatter(1, 1, undefined, 20, 1);
+    
+    // for now just use the triangle to render in the first place
+    shards = []
+    shards.push(new Shard(positions, [0,0]))
+
+
     // --- Buffers ---
     function initBuffers() {
+      // we will bind them to our shards later
       posBuffer = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-      gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+      // gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+      // gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
 
       colorBuffer = gl.createBuffer();
-      gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-      gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+      // gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+      // gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
     }
 
     initBuffers();
@@ -152,29 +164,41 @@
     fsEditor.onkeyup = initShaderProgram;
 
     let startTime = Date.now();
+    let prevTime = startTime;
+
     function render() {
-      //clear the canvas
+      // clear the canvas
       gl.clearColor(0, 0, 0, 1);
       gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
       gl.enable(gl.DEPTH_TEST);
+      
+      // delta time in ms
+      let currentTime = Date.now()
+      // we're interested in timestep for animation
+      let deltaTime = currentTime - prevTime; 
+      lastTime = currentTime;
+      
+      // set overall time in seconds
+      gl.uniform1f(timeLoc, (currentTime - startTime)/1000.0);
 
-      // Position buffer binding
-      gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-      gl.enableVertexAttribArray(posLoc);
-      gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
+      for(let shard of shards) {
+        shard.update(deltaTime);
 
-      // Color buffer binding
-      gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-      gl.enableVertexAttribArray(colorLoc);
-      gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0, 0);
+        // Position buffer binding
+        gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, shard.points, gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(posLoc);
+        gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
+  
+        // Color buffer binding
+        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        gl.bufferData(gl.ARRAY_BUFFER, shard.colors, gl.STATIC_DRAW);
+        gl.enableVertexAttribArray(colorLoc);
+        gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0, 0);
 
-      //delta time in ms
-      let deltaTime = Date.now() - startTime;
-      //set time in seconds
-      gl.uniform1f(timeLoc, deltaTime/1000.0);
-
-      // Draw content
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
+        // Draw content (current shard)
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      }
     }
 
     // Initialize when page loads
