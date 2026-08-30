@@ -20,10 +20,10 @@
 const TOLERANCE = 0.000001;
 
 class Shard {
-  constructor(points, speed, colors=undefined, static = false) {
+  constructor(points, speed, colors=undefined, stationary = false) {
     // float32 arrays for points & colors
     this.points = new Float32Array(points);
-    this.static = static
+    this.stationary = stationary
 
     if(!!colors){
         // use passed colors
@@ -53,7 +53,7 @@ class Shard {
    * move all the points, and update the speed vec
    */
   update(timestep) {
-    if(this.static){
+    if(this.stationary){
         return;
     }
     // TODO: update position (add speed vec)
