@@ -22,15 +22,21 @@ const TOLERANCE = 0.0001;
 class Shard {
   constructor(points, speed) {
     // float32 arrays for points & colors
-    this.points = points;
-    this.colors = []; // TODO choose random colors
+    this.points = new Float32Array(points);
+
+    // random colors for the verts
+    this.colors = new Float32Array(this.points.length);
+    for (let i = 0; i < this.colors.length; i += 3) {
+      this.colors[i] = Math.random();     // R
+      this.colors[i + 1] = Math.random(); // G
+      this.colors[i + 2] = Math.random(); // B
+    }
 
     // float32 2vec for speed [x,y]
-    this.speed = speed;
+    this.speed = new Float32Array(speed);
 
-    // TODO random rotation speed
     // might be easier to store this as rotation matrix
-    this.rotation = 0.0;
+    this.rotationSpeed = (Math.random() - 0.5) * 5.0;
   }
 
   /**
@@ -44,7 +50,7 @@ class Shard {
     // TODO: update rotation (apply rot matrix)
 
     // update the speed, ie pull it down via gravity
-    this.speed[1] -= 9.81 * timestep;
+    // this.speed[1] -= 9.81 * timestep;
   }
 }
 
