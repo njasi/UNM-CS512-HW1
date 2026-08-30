@@ -110,7 +110,7 @@ function clipLineToRectangle(line, x_lim, y_lim, tolerance = TOLERANCE) {
   if (Math.abs(dy) > tolerance) {
     // the top wall & the bottom wall
     possible.push([x1 + (-y1 / dy) * dx, 0]);
-    possible.push([x1 + (y_lim - y1 / dy), y_lim]);
+    possible.push([x1 + ((y_lim - y1) / dy) * dx, y_lim]);
   }
 
   // only keep the points that are still in the filter
@@ -136,7 +136,7 @@ function clipLineToRectangle(line, x_lim, y_lim, tolerance = TOLERANCE) {
     }
   }
 
-  return unique >= 2 ? [unique[0], unique[1]] : null;
+  return unique.length >= 2 ? [unique[0], unique[1]] : null;
 }
 
 /**
@@ -251,7 +251,7 @@ function makeAdjacency(lines, x_lim, y_lim, tolerance = TOLERANCE) {
   rawEdges.forEach(([a, b]) => {
     const u = getVertexIdx(a);
     const v = getVertexIdx(b);
-    if (u !== v) {
+    if (u !== v && !adjacency[u].includes(v)) {
       adjacency[u].push(v);
       adjacency[v].push(u);
     }
@@ -270,16 +270,84 @@ function makeAdjacency(lines, x_lim, y_lim, tolerance = TOLERANCE) {
  *
  * @returns {[[(float32, float32)]]}  A list of the faces found, ie ragged list of list of points
  */
-function findFaces(adjacency, vertices, tolerance = TOLERANCE) {
-  // TODO find proper explanation of this algorithm
-  // sorting around each vertex by angle
+function findFaces(adjacency, vertices, x_lim, y_lim, tolerance = TOLERANCE) {
+  // sort adj lsit around each vertex by angle
+  const sortedAdj = adjacency.map((neighbors, u) => {
+    const u_pt = vertices[u];
+
+    // compare the angles of the segment from each vert to the point u
+    return neighbors.slice().sort((v1, v2) => {
+      const pt1 = vertices[v1];
+      const pt2 = vertices[v2];
+      const angle1 = Math.atan2(pt1[1] - u_pt[1], pt1[0] - u_pt[0]);
+      const angle2 = Math.atan2(pt2[1] - u_pt[1], pt2[0] - u_pt[0]);
+      return angle1 - angle2;
+    });
+  });
+
+  const faces = [];
+  const visitedEdges = new Set();
+
   // walk the edges via the sorted adj list to find faces
-  // ....
-  // magic list of faces?
+  for (let u = 0; u < vertices.length; u++) {
+    for (let v of sortedAdj[u]) {
+      let edgeKey = `${u}->${v}`;
+
+      if (visitedEdges.has(edgeKey)) {
+        continue;
+      }
+
+      const face = [];
+      let current = u;
+      let next = v;
+
+      while (!visitedEdges.has(edgeKey)) {
+        visitedEdges.add(edgeKey);
+        face.push(vertices[current]);
+
+        const nextNeighbors = sortedAdj[next];
+        const currentIdx = nextNeighbors.indexOf(current);
+
+        // next edge in the face will be the one directly after the current one
+        // because of the angle sort 
+        const nextIdx =
+          (currentIdx - 1 + nextNeighbors.length) % nextNeighbors.length;
+
+        // go to the next 
+        current = next;
+        next = nextNeighbors[nextIdx];
+        edgeKey = `${current}->${next}`;
+      }
+      faces.push(face);
+    }
+  }
+
+  return faces.filter((face) => {
+    if (face.length < 3) {
+      return false;
+    }
+
+    // shoelace area check
+    let area = 0;
+    for (let i = 0; i < face.length; i++) {
+      const p1 = face[i];
+      const p2 = face[(i + 1) % face.length];
+      area += p1[0] * p2[1] - p2[0] * p1[1];
+    }
+
+    const absArea = Math.abs(area) / 2;
+    const totalArea = x_lim * y_lim;
+
+    // keep faces that are greater than tolrance, and reject the 
+    // face thats nearly the same size as the entire surface
+    // if i put the shard and starting point count too high 
+    // this might cause issues, ie discarding N small areas.
+    return absArea > tolerance && absArea < totalArea - tolerance;
+  });
 }
 
 /**
- * Create a list of Shards given an area and a shatter origin point
+ * Create a list of faces given an area and a shatter origin point
  *
  * @param {float32} x_lim                   The positive X limit of the rectangle
  * @param {float32} y_lim                   The positive Y limit of the rectangle
@@ -287,9 +355,9 @@ function findFaces(adjacency, vertices, tolerance = TOLERANCE) {
  * @param {int} n_pts                       The number of points to generate
  * @param {int} connections                 The number of connections per point to make
  *
- * @returns {[Shard]}                       List of shard objects
+ * @returns {[[(float32, float32)]]}                       List of shard objects
  */
-function shatter(x_lim, y_lim, shatter_pt, n_pts = 20, connections = 1) {
+function shatterFaces(x_lim, y_lim, shatter_pt, n_pts = 5, connections = 1) {
   // TODO:
 
   // Ensure that connections < n_pts
@@ -303,47 +371,55 @@ function shatter(x_lim, y_lim, shatter_pt, n_pts = 20, connections = 1) {
   // connect the points randomly, create <connections> line per point
   let shatter_lines = [];
   for (let i = 0; i < n_pts; i++) {
-    let seen = [];
+    // check with a set and start with i so we dont loop
+    let seen = new Set([i]);
     for (let c = 0; c < connections; c++) {
       let j = Math.floor(Math.random() * n_pts);
-      if (j === i) {
+      while (seen.has(j)) {
         j = (j + 1) % n_pts;
-
-        // hmm might get stucj in infinite loop if connections >= n_pts, so
-        // let us ensure it remains less than
-        if (seen.includes(j)) {
-          c--;
-          continue;
-        }
-        seen.push(j);
       }
+      seen.add(j);
       shatter_lines.push([points[i], points[j]]);
     }
   }
 
   // TODO: maybe add lines flaring out from shatter_pt to get a free representation of where the
-  //       whatter starts
+  //       shatter starts
 
   // calculate all intersections between the lines and the limits
   // NOTE: will all clipped lines still be within the rectangle?
-  shatter_lines = shatter_lines.map((line) =>
-    clipLineToRectangle(line, x_lim, y_lim),
-  );
+  shatter_lines = shatter_lines
+    .map((line) => {
+      const clipped = clipLineToRectangle(line, x_lim, y_lim);
+      return clipped;
+    })
+    .filter((line) => !!line);
 
   // create adjacency list and the list of vertices with actual positions
   const [adjacency, vertices] = makeAdjacency(shatter_lines, x_lim, y_lim);
 
   // find the faces in the adjacency list, use the actual positions
   // in vertices to make the planar representation
-  const faces = findFaces(adjacency, vertices);
+  // TODO: faces seem malformed, must be a bug somewhere i cant find...
+  const faces = findFaces(adjacency, vertices, x_lim, y_lim);
 
-  // unsure at this point but maybe we use the above class for updating
-  // will have to look at how the rest of the webgl js setup works in HW 1.html
-  // if we use, then initialize the shards with random speed which faces away from shatter_pt
+  return faces;
+}
 
-  // TODO: anyway we then map the faces to Shards & return them if we use this
-  return faces.map((face) => {
-    // TODO map to shards
-    return Shard();
-  });
+/**
+ * Create a list of Shards given an area and a shatter origin point
+ *
+ * @param {float32} x_lim                   The positive X limit of the rectangle
+ * @param {float32} y_lim                   The positive Y limit of the rectangle
+ * @param {(float32,float32)} shatter_pt    The origin point of the shatter (shards fall away from this)
+ * @param {int} n_pts                       The number of points to generate
+ * @param {int} connections                 The number of connections per point to make
+ *
+ * @returns {[Shard]}                       List of shard objects
+ */
+function shatter(x_lim, y_lim, shatter_pt, n_pts = 5, connections = 1) {
+  const faces = shatterFaces(x_lim, y_lim, shatter_pt, n_pts, connections);
+
+  // TODO
+  return faces.map((face) => Shard());
 }
