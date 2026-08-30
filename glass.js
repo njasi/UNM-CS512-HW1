@@ -24,6 +24,7 @@ class Shard {
     // float32 arrays for points & colors
     this.points = new Float32Array(points);
     this.stationary = stationary;
+    this.debug=false;
 
     if (!!colors) {
       // use passed colors
@@ -55,10 +56,23 @@ class Shard {
     if (this.stationary) {
       return;
     }
-    // TODO: update position (add speed vec)
-    // TODO: update rotation (apply rot matrix)
     // update the speed, ie pull it down via gravity
-    // this.speed[1] -= 9.81 * timestep;
+    this.speed[1] -= 9.81 * timestep; 
+    
+    let dx = this.speed[0] * timestep / 10;
+    let dy = this.speed[1] * timestep / 10;
+    
+    // if(this.debug == true){
+    //     console.log(dx, dy, this.points);
+    // }
+
+    // update position (add speed vec)
+    for (let i = 0; i < this.points.length; i += 3) {
+        this.points[i] += dx;
+        this.points[i + 1] += dy;
+    }
+
+    // TODO: update rotation (apply rot speed)
   }
 }
 
@@ -446,16 +460,15 @@ function shatter(x_lim, y_lim, shatter_pt, n_pts = 5, connections = 1) {
     cy /= face.length;
 
     // calculate center dist from shatter to get a explosion effect
-    let dist = dist([cx, cy], shatter_pt);
+    let distance = dist([cx, cy], shatter_pt);
     let vx = cx - shatter_pt[0];
     let vy = cy - shatter_pt[1];
 
     // TOLERANCE is too small to use here...
-    // TODO figure out scaling needed
-    const scale = 1;
-    if (dist > 0.001) {
-      vx = (vx / dist) * scale;
-      vy = (vy / dist) * scale;
+    const force = 20.0 + Math.random() * 10.0;
+    if (distance > 0.001) {
+      vx = (vx / (1 + distance)) * force;
+      vy = (vy / (1 + distance)) * force;
     }
 
     // need to turn some faces into triangles

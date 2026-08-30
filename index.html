@@ -148,7 +148,8 @@
 
     // make the pane shatter after 3 seconds by replacing with shards lol
     setTimeout(() => {
-      shards = shatter(1, 1, undefined, 40, 1);
+      shards = shatter(1, 1, [Math.random(), Math.random()], 40, 1);
+      shards[0].debug = true;
     }, 3000)
 
     // --- Buffers ---
@@ -193,7 +194,7 @@
       // delta time in ms
       let currentTime = Date.now()
       // we're interested in timestep for animation
-      let deltaTime = currentTime - prevTime; 
+      let deltaTime = (currentTime - prevTime) / 1000.0; 
       prevTime = currentTime;
       
       // set overall time in seconds
