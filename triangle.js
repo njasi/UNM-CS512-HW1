@@ -4,6 +4,11 @@ const positions = new Float32Array([
   -1.0, 0.0, 0.0,  // vertex 2
    1.0, 0.0, 0.0   // vertex 3
 ]);
+const positions2 = new Float32Array([
+   0.0, 0.5, 0.0,  // vertex 1
+   0.5, 0.0, 0.0,  // vertex 2
+   1.0, 1.0, 0.0   // vertex 3
+]);
 
 const colors = new Float32Array([
   1.0, 0.0, 0.0,  // Red

@@ -24,12 +24,14 @@ class Shard {
     // float32 arrays for points & colors
     this.points = new Float32Array(points);
 
-    // random colors for the verts
+    // random color for the entire shape
+    let color = [Math.random(), Math.random(), Math.random()];
+
     this.colors = new Float32Array(this.points.length);
     for (let i = 0; i < this.colors.length; i += 3) {
-      this.colors[i] = Math.random();     // R
-      this.colors[i + 1] = Math.random(); // G
-      this.colors[i + 2] = Math.random(); // B
+      this.colors[i] = color[0];
+      this.colors[i + 1] = color[1];
+      this.colors[i + 2] = color[2];
     }
 
     // float32 2vec for speed [x,y]
@@ -46,9 +48,7 @@ class Shard {
    */
   update(timestep) {
     // TODO: update position (add speed vec)
-
     // TODO: update rotation (apply rot matrix)
-
     // update the speed, ie pull it down via gravity
     // this.speed[1] -= 9.81 * timestep;
   }
@@ -84,7 +84,7 @@ function lineIntersection(line1, line2, tolerance = TOLERANCE) {
   }
 
   const x =
-    ((x1 * y2 - y2 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / D;
+    ((x1 * y2 - y1 * x2) * (x3 - x4) - (x1 - x2) * (x3 * y4 - y3 * x4)) / D;
   const y =
     ((x1 * y2 - y1 * x2) * (y3 - y4) - (y1 - y2) * (x3 * y4 - y3 * x4)) / D;
   return [x, y];
@@ -315,11 +315,11 @@ function findFaces(adjacency, vertices, x_lim, y_lim, tolerance = TOLERANCE) {
         const currentIdx = nextNeighbors.indexOf(current);
 
         // next edge in the face will be the one directly after the current one
-        // because of the angle sort 
+        // because of the angle sort
         const nextIdx =
           (currentIdx - 1 + nextNeighbors.length) % nextNeighbors.length;
 
-        // go to the next 
+        // go to the next
         current = next;
         next = nextNeighbors[nextIdx];
         edgeKey = `${current}->${next}`;
@@ -344,9 +344,9 @@ function findFaces(adjacency, vertices, x_lim, y_lim, tolerance = TOLERANCE) {
     const absArea = Math.abs(area) / 2;
     const totalArea = x_lim * y_lim;
 
-    // keep faces that are greater than tolrance, and reject the 
+    // keep faces that are greater than tolrance, and reject the
     // face thats nearly the same size as the entire surface
-    // if i put the shard and starting point count too high 
+    // if i put the shard and starting point count too high
     // this might cause issues, ie discarding N small areas.
     return absArea > tolerance && absArea < totalArea - tolerance;
   });
@@ -426,6 +426,28 @@ function shatterFaces(x_lim, y_lim, shatter_pt, n_pts = 5, connections = 1) {
 function shatter(x_lim, y_lim, shatter_pt, n_pts = 5, connections = 1) {
   const faces = shatterFaces(x_lim, y_lim, shatter_pt, n_pts, connections);
 
-  // TODO
-  return faces.map((face) => Shard());
+  return faces.map((face) => {
+    // need to turn some faces into triangles
+    const triangulatedVertices = [];
+    const v0 = face[0];
+
+    // fan triangulation: https://en.wikipedia.org/wiki/Fan_triangulation
+    for (let i = 1; i < face.length - 1; i++) {
+      let v1 = face[i];
+      let v2 = face[i + 1];
+
+      triangulatedVertices.push(
+        v0[0] - x_lim / 2,
+        v0[1] - y_lim / 2,
+        0.0,
+        v1[0] - x_lim / 2,
+        v1[1] - y_lim / 2,
+        0.0,
+        v2[0] - x_lim / 2,
+        v2[1] - y_lim / 2,
+        0.0,
+      );
+    }
+    return new Shard(triangulatedVertices, [0.0, 0.0]);
+  });
 }

@@ -125,12 +125,14 @@
 
     // -- Shards Init ---
 
-    // TODO later we make the shards with shatter, 
-    // shards = shatter(1, 1, undefined, 20, 1);
-    
+    // make the shards with shatter, 
+    let shards = shatter(1, 1, undefined, 20, 1);
+    console.log("ALL shards:\t", shards);
+
     // for now just use the triangle to render in the first place
-    shards = []
-    shards.push(new Shard(positions, [0,0]))
+    // shards = []
+    // shards.push(new Shard(positions, [0,0]))
+    // shards.push(new Shard(positions2, [0,0]))
 
 
     // --- Buffers ---
@@ -197,7 +199,8 @@
         gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0, 0);
 
         // Draw content (current shard)
-        gl.drawArrays(gl.TRIANGLES, 0, 3);
+        // gl.drawArrays(gl.TRIANGLES, 0, 3);
+        gl.drawArrays(gl.TRIANGLES, 0, shard.points.length / 3);
       }
     }
 
