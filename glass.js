@@ -17,22 +17,28 @@
  * Also big bonus here, we dont need 100% correctness and 90% correctness wont even look weird
  */
 
-const TOLERANCE = 0.0001;
+const TOLERANCE = 0.000001;
 
 class Shard {
-  constructor(points, speed) {
+  constructor(points, speed, colors=undefined, static = false) {
     // float32 arrays for points & colors
     this.points = new Float32Array(points);
+    this.static = static
 
-    // random color for the entire shape
-    let color = [Math.random(), Math.random(), Math.random()];
-
-    this.colors = new Float32Array(this.points.length);
-    for (let i = 0; i < this.colors.length; i += 3) {
-      this.colors[i] = color[0];
-      this.colors[i + 1] = color[1];
-      this.colors[i + 2] = color[2];
+    if(!!colors){
+        // use passed colors
+        this.colors = colors
+    }else {
+        // random color for the entire shape
+        let color = [Math.random(), Math.random(), Math.random()];
+        this.colors = new Float32Array(this.points.length);
+        for (let i = 0; i < this.colors.length; i += 3) {
+          this.colors[i] = color[0];
+          this.colors[i + 1] = color[1];
+          this.colors[i + 2] = color[2];
+        }
     }
+    
 
     // float32 2vec for speed [x,y]
     this.speed = new Float32Array(speed);
@@ -47,6 +53,9 @@ class Shard {
    * move all the points, and update the speed vec
    */
   update(timestep) {
+    if(this.static){
+        return;
+    }
     // TODO: update position (add speed vec)
     // TODO: update rotation (apply rot matrix)
     // update the speed, ie pull it down via gravity
