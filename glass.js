@@ -20,25 +20,24 @@
 const TOLERANCE = 0.000001;
 
 class Shard {
-  constructor(points, speed, colors=undefined, stationary = false) {
+  constructor(points, speed, colors = undefined, stationary = false) {
     // float32 arrays for points & colors
     this.points = new Float32Array(points);
-    this.stationary = stationary
+    this.stationary = stationary;
 
-    if(!!colors){
-        // use passed colors
-        this.colors = colors
-    }else {
-        // random color for the entire shape
-        let color = [Math.random(), Math.random(), Math.random()];
-        this.colors = new Float32Array(this.points.length);
-        for (let i = 0; i < this.colors.length; i += 3) {
-          this.colors[i] = color[0];
-          this.colors[i + 1] = color[1];
-          this.colors[i + 2] = color[2];
-        }
+    if (!!colors) {
+      // use passed colors
+      this.colors = colors;
+    } else {
+      // random color for the entire shape
+      let color = [Math.random(), Math.random(), Math.random()];
+      this.colors = new Float32Array(this.points.length);
+      for (let i = 0; i < this.colors.length; i += 3) {
+        this.colors[i] = color[0];
+        this.colors[i + 1] = color[1];
+        this.colors[i + 2] = color[2];
+      }
     }
-    
 
     // float32 2vec for speed [x,y]
     this.speed = new Float32Array(speed);
@@ -53,8 +52,8 @@ class Shard {
    * move all the points, and update the speed vec
    */
   update(timestep) {
-    if(this.stationary){
-        return;
+    if (this.stationary) {
+      return;
     }
     // TODO: update position (add speed vec)
     // TODO: update rotation (apply rot matrix)
@@ -436,6 +435,29 @@ function shatter(x_lim, y_lim, shatter_pt, n_pts = 5, connections = 1) {
   const faces = shatterFaces(x_lim, y_lim, shatter_pt, n_pts, connections);
 
   return faces.map((face) => {
+    // calculate center of shard distance to shatter point
+    let cx = 0;
+    let cy = 0;
+    face.forEach((pt) => {
+      cx += pt[0];
+      cy += pt[1];
+    });
+    cx /= face.length;
+    cy /= face.length;
+
+    // calculate center dist from shatter to get a explosion effect
+    let dist = dist([cx, cy], shatter_pt);
+    let vx = cx - shatter_pt[0];
+    let vy = cy - shatter_pt[1];
+
+    // TOLERANCE is too small to use here...
+    // TODO figure out scaling needed
+    const scale = 1;
+    if (dist > 0.001) {
+      vx = (vx / dist) * scale;
+      vy = (vy / dist) * scale;
+    }
+
     // need to turn some faces into triangles
     const triangulatedVertices = [];
     const v0 = face[0];
@@ -457,6 +479,6 @@ function shatter(x_lim, y_lim, shatter_pt, n_pts = 5, connections = 1) {
         0.0,
       );
     }
-    return new Shard(triangulatedVertices, [0.0, 0.0]);
+    return new Shard(triangulatedVertices, [vx, vy]);
   });
 }
