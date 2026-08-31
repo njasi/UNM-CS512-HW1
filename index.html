@@ -11,12 +11,16 @@
       font-family: monospace;
     }
 
-    textarea {
+    textarea, .fancy-box {
       background: #222;
       color: #0f0;
       font: 14px monospace;
-      width: 400px;
-      height: 250px;
+      width: 380px;
+      height: 230px;
+    }
+
+    .fancy-box{
+      padding: 10px;
     }
 
     canvas {
@@ -27,13 +31,63 @@
   </style>
 </head>
 <body>
-  <h2>WebGL</h2>
+  <h2>WebGL Shatter</h2>
   <p>Edit vertex and fragment shaders on the left, and you can see the result on the right instantly. <br>
-    Please copy your edits to the source code if you want to save them, as the playground doesn't save them to the file.
+    The various parts of the shatter animation can be modified in the Settings panel to the left
   </p>
 
   <div style="display: flex; gap: 10px; align-items: flex-start;">
     <div style="display: flex; flex-direction: column; gap: 10px;">
+      <div>
+        <b>Shatter Settings</b><br>
+        <div class="fancy-box">
+          <table>
+            <tr>
+              <td>
+                <label>Replay animation</label>
+              </td>
+              <td>
+                <button onclick="squareShatter()">Shatter</button>
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <label>Loop Animation</label>
+              </td>
+              <td>
+                <input id="loopInput" type="checkbox" checked="true">
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <label>Shatter Points</label>
+              </td>
+              <td>
+                <input type="range" value="40" min="5" max="60">
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <label>Shatter Lines (per point)</label>
+              </td>
+              <td>
+                <input type="range" value="2" min="1" max="10">
+              </td>
+            </tr>
+          </table>
+        </div>
+      </div>
+      <script>
+        // setting handling
+        let loop = true, shatterPoints = 40, shatterConnections=1;
+
+        function handleLoop(event){
+          console.log("loop", loop, event.target.checked)
+          loop = event.target.checked;
+        }
+
+        document.getElementById("loopInput").addEventListener("onChange", handleLoop)
+      </script>
       <div>
         <b>Vertex Shader</b><br>
         <textarea id="vsEditor"></textarea>
@@ -47,6 +101,7 @@
     <div>
       <canvas id="glcanvas" width="600" height="600"></canvas>
     </div>
+
   </div>
 
   <!-- MAKE SURE YOU UPDATE YOUR EDITS HERE -->
@@ -143,14 +198,54 @@
 
     // -- Shards Init ---
     let shards = []
-    // render in our initial pane
-    shards.push(new Shard(positionsSquare, [0,0], colorsSquare, true))
+    let shatterTimeout = undefined;
+    let startTime = Date.now();
+    let prevTime = startTime;
 
-    // make the pane shatter after 3 seconds by replacing with shards lol
-    setTimeout(() => {
-      shards = shatter(1, 1, [Math.random(), Math.random()], 40, 1);
-      shards[0].debug = true;
-    }, 3000)
+    function squareShatter(){
+      console.log("resetting shatter")
+      // reset the time
+      startTime = Date.now();
+      prevTime = startTime;
+
+      if(shatterTimeout !== undefined){
+        clearTimeout(shatterTimeout);
+        shatterTimeout = undefined;
+      }
+      
+      // render in our initial pane
+      shards = []
+      shards.push(new Shard(positionsSquare, [0,0], colorsSquare, true))
+
+      shatterCalc = []
+      // calcuate shatter ahead of time
+      shatterTimeout = setTimeout(() => {
+        shatterCalc = shatter(1, 1, [Math.random(), Math.random()], shatterPoints, shatterConnections);
+      }, 0)
+  
+      // make the pane shatter after 3 seconds by replacing with shards lol
+      shatterTimeout = setTimeout(() => {
+        shards = shatterCalc
+        shards[0].debug = true;
+      }, 3000)
+    }
+
+    squareShatter()
+
+
+
+    // loop checker
+    setInterval(()=>{
+      if(!loop || shards.length <= 1){
+        return
+      }
+
+      const allStationary = shards.reduce((prev, curr)=> prev && curr.stationary, true)
+
+      if(allStationary){
+        squareShatter()
+      }
+    },1000)
 
     // --- Buffers ---
     function initBuffers() {
@@ -182,8 +277,6 @@
     vsEditor.onkeyup = initShaderProgram;
     fsEditor.onkeyup = initShaderProgram;
 
-    let startTime = Date.now();
-    let prevTime = startTime;
 
     function render() {
       // clear the canvas

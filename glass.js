@@ -66,10 +66,18 @@ class Shard {
     //     console.log(dx, dy, this.points);
     // }
 
+    let below_screen = true
     // update position (add speed vec)
     for (let i = 0; i < this.points.length; i += 3) {
         this.points[i] += dx;
         this.points[i + 1] += dy;
+
+        // -1 works as a cuttoff but -2 just in case i want to zoom out later
+        below_screen = below_screen && this.points[i + 1] < -2;
+    }
+
+    if (below_screen){
+      this.stationary = true;
     }
 
     // TODO: update rotation (apply rot speed)
