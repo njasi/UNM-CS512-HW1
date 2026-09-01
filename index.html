@@ -104,9 +104,26 @@
                     class="configInput"
                     type="range"
                     value="0.2"
-                    min="0.1"
+                    min="0"
                     max="1"
-                    step="0.05"
+                    step="0.1"
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <label>Transparency </label>
+                </td>
+                <td><span id="transValue">0.9</span></td>
+                <td>
+                  <input
+                    name="trans"
+                    class="configInput"
+                    type="range"
+                    value="0.9"
+                    min="0"
+                    max="1"
+                    step="0.1"
                   />
                 </td>
               </tr>
@@ -120,6 +137,7 @@
             shatterPoints: 40,
             shatterConnections: 2,
             chaos: 0.2,
+            trans: 0.9
           };
 
           function handleLoop(event) {
@@ -190,10 +208,12 @@
       precision mediump float;
       in vec3 vColor;
 
+      uniform float trans; //transparency value
+
       out vec4 fragColor;
 
       void main() {
-        fragColor = vec4(vColor, 1.0);
+        fragColor = vec4(vColor, trans);
       }
     </script>
 
@@ -233,13 +253,14 @@
       //alpha transparency
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      gl.depthMask(false);
 
       const vsEditor = document.getElementById("vsEditor");
       const fsEditor = document.getElementById("fsEditor");
       vsEditor.value = document.getElementById("vertex-shader").textContent;
       fsEditor.value = document.getElementById("fragment-shader").textContent;
 
-      let program, posLoc, colorLoc, timeLoc;
+      let program, posLoc, colorLoc, timeLoc, trans;
       let posBuffer, colorBuffer;
 
       // -- Shards Init ---
@@ -321,6 +342,7 @@
           posLoc = gl.getAttribLocation(program, "aPosition");
           colorLoc = gl.getAttribLocation(program, "aColor");
           timeLoc = gl.getUniformLocation(program, "uTime");
+          trans = gl.getUniformLocation(program, "trans");
         } catch (e) {
           console.error(e);
         }
@@ -343,6 +365,10 @@
         // we're interested in timestep for animation
         let deltaTime = (currentTime - prevTime) / 1000.0;
         prevTime = currentTime;
+
+        // update the transparency setting
+        gl.uniform1f(trans, config["trans"]);
+
 
         // set overall time in seconds
         gl.uniform1f(timeLoc, (currentTime - startTime) / 1000.0);
