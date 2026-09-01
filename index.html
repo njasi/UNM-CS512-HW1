@@ -1,346 +1,379 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
+  <head>
+    <meta charset="utf-8" />
+    <title>UNM CS 412/512 HW 1</title>
+    <style>
+      body {
+        background: #111;
+        color: #ccc;
+        font-family: monospace;
+      }
 
-<head>
-  <meta charset="utf-8">
-  <title>UNM CS 412/512 HW 1</title>
-  <style>
-    body {
-      background: #111;
-      color: #ccc;
-      font-family: monospace;
-    }
+      textarea,
+      .fancy-box {
+        background: #222;
+        color: #0f0;
+        font: 14px monospace;
+        width: 380px;
+        height: 230px;
+      }
 
-    textarea, .fancy-box {
-      background: #222;
-      color: #0f0;
-      font: 14px monospace;
-      width: 380px;
-      height: 230px;
-    }
+      .fancy-box {
+        padding: 10px;
+      }
 
-    .fancy-box{
-      padding: 10px;
-    }
+      canvas {
+        border: 1px solid #444;
+        /* maybe use if can figure out correct transparency */
+        /* background: url('https://getwallpapers.com/wallpaper/full/2/5/4/727006-best-windows-xp-desktop-backgrounds-3840x2160.jpg') center/cover; */
+      }
+    </style>
+  </head>
+  <body>
+    <h2>WebGL Shatter</h2>
+    <p>
+      Edit vertex and fragment shaders on the left, and you can see the result
+      on the right instantly. <br />
+      The various parts of the shatter animation can be modified in the Settings
+      panel to the left
+    </p>
 
-    canvas {
-      border: 1px solid #444;
-      /* maybe use if can figure out correct transparency */
-      /* background: url('https://getwallpapers.com/wallpaper/full/2/5/4/727006-best-windows-xp-desktop-backgrounds-3840x2160.jpg') center/cover; */
-    }
-  </style>
-</head>
-<body>
-  <h2>WebGL Shatter</h2>
-  <p>Edit vertex and fragment shaders on the left, and you can see the result on the right instantly. <br>
-    The various parts of the shatter animation can be modified in the Settings panel to the left
-  </p>
+    <div style="display: flex; gap: 10px; align-items: flex-start">
+      <div style="display: flex; flex-direction: column; gap: 10px">
+        <div>
+          <b>Shatter Settings</b><br />
+          <div class="fancy-box">
+            <table>
+              <tr>
+                <td>
+                  <label>Replay animation</label>
+                </td>
+                <td colspan="2">
+                  <button onclick="squareShatter()">Shatter</button>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <label>Loop Animation</label>
+                </td>
+                <td colspan="2">
+                  <input id="loopInput" type="checkbox" checked="true" />
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <label>Shatter Points</label>
+                </td>
+                <td><span id="shatterPointsValue">40</span></td>
+                <td>
+                  <input
+                    class="configInput"
+                    name="shatterPoints"
+                    type="range"
+                    value="40"
+                    min="5"
+                    max="60"
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <label>Shatter Lines </label>
+                </td>
+                <td>x<span id="shatterConnectionsValue">2</span></td>
+                <td>
+                  <input
+                    class="configInput"
+                    name="shatterConnections"
+                    type="range"
+                    value="2"
+                    min="1"
+                    max="3"
+                  />
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <label>Chaos </label>
+                </td>
+                <td><span id="chaosValue">0.2</span></td>
+                <td>
+                  <input
+                    name="chaos"
+                    class="configInput"
+                    type="range"
+                    value="0.2"
+                    min="0.1"
+                    max="1"
+                    step="0.05"
+                  />
+                </td>
+              </tr>
+            </table>
+          </div>
+        </div>
+        <script>
+          // setting handling
+          let loop = true;
+          let config = {
+            shatterPoints: 40,
+            shatterConnections: 2,
+            chaos: 0.2,
+          };
 
-  <div style="display: flex; gap: 10px; align-items: flex-start;">
-    <div style="display: flex; flex-direction: column; gap: 10px;">
-      <div>
-        <b>Shatter Settings</b><br>
-        <div class="fancy-box">
-          <table>
-            <tr>
-              <td>
-                <label>Replay animation</label>
-              </td>
-              <td colspan="2">
-                <button onclick="squareShatter()">Shatter</button>
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <label>Loop Animation</label>
-              </td>
-              <td colspan="2">
-                <input id="loopInput" type="checkbox" checked="true">
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <label>Shatter Points</label>
-              </td>
-              <td><span id="shatterPointsValue">40</span></td>
-              <td>
-                <input class="configInput" name="shatterPoints" type="range" value="40" min="5" max="60">
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <label>Shatter Lines </label>
-              </td>
-              <td>x<span id="shatterConnectionsValue">2</span></td>
-              <td>
-                <input class="configInput" name="shatterConnections" type="range" value="2" min="1" max="3">
-              </td>
-            </tr>
-            <tr>
-              <td>
-                <label>Chaos </label>
-              </td>
-              <td><span id="chaosValue">0.2</span></td>
-              <td>
-                <input name="chaos" class="configInput" type="range" value="0.2" min="0.1" max="1" step="0.05">
-              </td>
-            </tr>
-          </table>
+          function handleLoop(event) {
+            loop = event.target.checked;
+          }
+
+          function handleConfig(event) {
+            const name = event.target.name;
+            config[name] = parseFloat(event.target.value);
+            document.getElementById(name + "Value").innerText = config[name];
+          }
+
+          document
+            .getElementById("loopInput")
+            .addEventListener("change", handleLoop);
+          [...document.getElementsByClassName("configInput")].forEach((ele) =>
+            ele.addEventListener("change", handleConfig),
+          );
+        </script>
+        <div>
+          <b>Vertex Shader</b><br />
+          <textarea id="vsEditor"></textarea>
+        </div>
+        <div>
+          <b>Fragment Shader</b><br />
+          <textarea id="fsEditor"></textarea>
         </div>
       </div>
-      <script>
-        // setting handling
-        let loop = true;
-        let config = {
-          "shatterPoints" : 40,
-          "shatterConnections" : 2,
-          "chaos" : 0.2
-        }
-        
 
-        function handleLoop(event){
-          loop = event.target.checked;
-        }
-
-        function handleConfig(event){
-          const name = event.target.name;
-          config[name] = parseFloat(event.target.value);
-          document.getElementById(name + "Value").innerText = config[name];
-        }
-
-        document.getElementById("loopInput").addEventListener("change", handleLoop);
-        [...document.getElementsByClassName("configInput")].forEach(ele => ele.addEventListener("change", handleConfig))
-      </script>
       <div>
-        <b>Vertex Shader</b><br>
-        <textarea id="vsEditor"></textarea>
-      </div>
-      <div>
-        <b>Fragment Shader</b><br>
-        <textarea id="fsEditor"></textarea>
+        <canvas id="glcanvas" width="600" height="600"></canvas>
       </div>
     </div>
 
-    <div>
-      <canvas id="glcanvas" width="600" height="600"></canvas>
-    </div>
+    <!-- MAKE SURE YOU UPDATE YOUR EDITS HERE -->
+    <!-- Vertex Shader -->
+    <script id="vertex-shader" type="x-shader/x-vertex">
+      #version 300 es
+        in vec3 aPosition;
+        in vec3 aColor;
 
-  </div>
+        uniform float uTime; //time in sec
+        out vec3 vColor;
 
-  <!-- MAKE SURE YOU UPDATE YOUR EDITS HERE -->
-  <!-- Vertex Shader -->
-  <script id="vertex-shader" type="x-shader/x-vertex">#version 300 es
-  in vec3 aPosition;
-  in vec3 aColor;
+        void main() {
+          // we dont want to alter the actual position
+          vec3 pos = aPosition;
 
-  uniform float uTime; //time in sec
-  out vec3 vColor;
+          if (uTime < 3.0) {
+            // scale to make actions more violent right before shattering
+            float scale = (uTime / 2.0);
 
-  void main() {
-    // we dont want to alter the actual position
-    vec3 pos = aPosition;
+            // translate with sin & cos for a shake in xy
+            pos.x += sin(uTime * 40.0 * (scale + 0.5)) * 0.01 * scale;
+            pos.y += cos(uTime * 30.0 * (scale + 0.5)) * 0.01 * scale;
 
-    if (uTime < 3.0) {
-      // scale to make actions more violent right before shattering
-      float scale = (uTime / 2.0);
+            // change scale with sin like a z shake
+            pos *= 1.0 + sin(uTime * 20.0 * (scale + 0.5)) * 0.03 * scale;
+          }
 
-      // translate with sin & cos for a shake in xy
-      pos.x += sin(uTime * 40.0 * (scale + 0.5)) * 0.01 * scale;
-      pos.y += cos(uTime * 30.0 * (scale + 0.5)) * 0.01 * scale;
+          gl_Position = vec4(pos, 1.0);
+          vColor = aColor;
+        }
+    </script>
 
-      // change scale with sin like a z shake
-      pos *= 1.0 + sin(uTime * 20.0 * (scale + 0.5)) * 0.03 * scale;
-    }
+    <!-- MAKE SURE YOU UPDATE YOUR EDITS HERE -->
+    <!-- Fragment Shader -->
+    <script id="fragment-shader" type="x-shader/x-fragment">
+      #version 300 es
+        precision mediump float;
+        in vec3 vColor;
 
-    gl_Position = vec4(pos, 1.0);
-    vColor = aColor;
-  }
+        out vec4 fragColor;
 
+        void main() {
+          fragColor = vec4(vColor, 1.0);
+        }
+    </script>
 
-  </script>
+    <script src="./square.js"></script>
+    <script src="./glass.js"></script>
 
-  <!-- MAKE SURE YOU UPDATE YOUR EDITS HERE -->
-  <!-- Fragment Shader -->
-  <script id="fragment-shader" type="x-shader/x-fragment">#version 300 es
-  precision mediump float;
-  in vec3 vColor;
-
-  out vec4 fragColor;
-
-  void main() {
-    fragColor = vec4(vColor, 1.0);
-  }
-  </script>
-
-  <script src="./square.js"></script>
-  <script src="./glass.js"></script>
-
-  <script>
-    function createShader(gl, type, source) {
-      let shader = gl.createShader(type);
-      gl.shaderSource(shader, source);
-      gl.compileShader(shader);
-      if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-        throw new Error(gl.getShaderInfoLog(shader));
-      }
-      return shader;
-    }
-
-    function createProgram(gl, vsSource, fsSource) {
-      let vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
-      let fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
-      let prog = gl.createProgram();
-      gl.attachShader(prog, vs);
-      gl.attachShader(prog, fs);
-      gl.linkProgram(prog);
-      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
-        throw new Error(gl.getProgramInfoLog(prog));
-      }
-      return prog;
-    }
-
-
-    // --- WebGL init ---
-    const canvas = document.getElementById("glcanvas");
-    // const gl = canvas.getContext("webgl2");
-    const gl = canvas.getContext("webgl2", { premultipliedAlpha: false });
-    if (!gl) alert("WebGL2 not supported");
-
-    //alpha transparency
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
-
-    const vsEditor = document.getElementById("vsEditor");
-    const fsEditor = document.getElementById("fsEditor");
-    vsEditor.value = document.getElementById("vertex-shader").textContent;
-    fsEditor.value = document.getElementById("fragment-shader").textContent;
-
-    let program, posLoc, colorLoc, timeLoc;
-    let posBuffer, colorBuffer;
-
-    // -- Shards Init ---
-    let shards = []
-    let shatterTimeout = undefined;
-    let startTime = Date.now();
-    let prevTime = startTime;
-
-    function squareShatter(){
-      // reset the time
-      startTime = Date.now();
-      prevTime = startTime;
-
-      if(shatterTimeout !== undefined){
-        clearTimeout(shatterTimeout);
-        shatterTimeout = undefined;
-      }
-      
-      // render in our initial pane
-      shards = []
-      shards.push(new Shard(positionsSquare, [0,0], colorsSquare, true))
-
-      shatterCalc = []
-      // calcuate shatter ahead of time
-      shatterTimeout = setTimeout(() => {
-        shatterCalc = shatter(1, 1, [Math.random(), Math.random()], config["shatterPoints"], config["shatterConnections"], config["chaos"]);
-      }, 0)
-  
-      // make the pane shatter after 3 seconds by replacing with shards lol
-      shatterTimeout = setTimeout(() => {
-        shards = shatterCalc
-        shards[0].debug = true;
-      }, 3000)
-    }
-
-    squareShatter()
-
-
-
-    // loop checker
-    setInterval(()=>{
-      if(!loop || shards.length <= 1){
-        return
+    <script>
+      function createShader(gl, type, source) {
+        let shader = gl.createShader(type);
+        gl.shaderSource(shader, source);
+        gl.compileShader(shader);
+        if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+          throw new Error(gl.getShaderInfoLog(shader));
+        }
+        return shader;
       }
 
-      const allStationary = shards.reduce((prev, curr)=> prev && curr.stationary, true)
-
-      if(allStationary){
-        squareShatter()
+      function createProgram(gl, vsSource, fsSource) {
+        let vs = createShader(gl, gl.VERTEX_SHADER, vsSource);
+        let fs = createShader(gl, gl.FRAGMENT_SHADER, fsSource);
+        let prog = gl.createProgram();
+        gl.attachShader(prog, vs);
+        gl.attachShader(prog, fs);
+        gl.linkProgram(prog);
+        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+          throw new Error(gl.getProgramInfoLog(prog));
+        }
+        return prog;
       }
-    },1000)
 
-    // --- Buffers ---
-    function initBuffers() {
-      // we will bind them to our shards later
-      posBuffer = gl.createBuffer();
-      // gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-      // gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+      // --- WebGL init ---
+      const canvas = document.getElementById("glcanvas");
+      // const gl = canvas.getContext("webgl2");
+      const gl = canvas.getContext("webgl2", { premultipliedAlpha: false });
+      if (!gl) alert("WebGL2 not supported");
 
-      colorBuffer = gl.createBuffer();
-      // gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-      // gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
-    }
+      //alpha transparency
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-    initBuffers();
+      const vsEditor = document.getElementById("vsEditor");
+      const fsEditor = document.getElementById("fsEditor");
+      vsEditor.value = document.getElementById("vertex-shader").textContent;
+      fsEditor.value = document.getElementById("fragment-shader").textContent;
 
-    function initShaderProgram() {
-      try {
-        program = createProgram(gl, vsEditor.value, fsEditor.value);
-        gl.useProgram(program);
-        posLoc = gl.getAttribLocation(program, "aPosition");
-        colorLoc = gl.getAttribLocation(program, "aColor");
-        timeLoc = gl.getUniformLocation(program, "uTime");
-      } catch (e) { console.error(e); }
-    }
+      let program, posLoc, colorLoc, timeLoc;
+      let posBuffer, colorBuffer;
 
-    initShaderProgram();
+      // -- Shards Init ---
+      let shards = [];
+      let shatterTimeout = undefined;
+      let startTime = Date.now();
+      let prevTime = startTime;
 
-    //hot compile when any input in the playground text area
-    vsEditor.onkeyup = initShaderProgram;
-    fsEditor.onkeyup = initShaderProgram;
+      function squareShatter() {
+        // reset the time
+        startTime = Date.now();
+        prevTime = startTime;
 
+        if (shatterTimeout !== undefined) {
+          clearTimeout(shatterTimeout);
+          shatterTimeout = undefined;
+        }
 
-    function render() {
-      // clear the canvas
-      gl.clearColor(0, 0, 0, 1);
-      gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-      gl.enable(gl.DEPTH_TEST);
-      
-      // delta time in ms
-      let currentTime = Date.now()
-      // we're interested in timestep for animation
-      let deltaTime = (currentTime - prevTime) / 1000.0; 
-      prevTime = currentTime;
-      
-      // set overall time in seconds
-      gl.uniform1f(timeLoc, (currentTime - startTime)/1000.0);
+        // render in our initial pane
+        shards = [];
+        shards.push(new Shard(positionsSquare, [0, 0], colorsSquare, true));
 
-      for(let shard of shards) {
-        shard.update(deltaTime);
+        shatterCalc = [];
+        // calcuate shatter ahead of time
+        shatterTimeout = setTimeout(() => {
+          shatterCalc = shatter(
+            1,
+            1,
+            [Math.random(), Math.random()],
+            config["shatterPoints"],
+            config["shatterConnections"],
+            config["chaos"],
+          );
+        }, 0);
 
-        // Position buffer binding
-        gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, shard.points, gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(posLoc);
-        gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
-  
-        // Color buffer binding
-        gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-        gl.bufferData(gl.ARRAY_BUFFER, shard.colors, gl.STATIC_DRAW);
-        gl.enableVertexAttribArray(colorLoc);
-        gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0, 0);
-
-        // Draw content (current shard)
-        // gl.drawArrays(gl.TRIANGLES, 0, 3);
-        gl.drawArrays(gl.TRIANGLES, 0, shard.points.length / 3);
+        // make the pane shatter after 3 seconds by replacing with shards lol
+        shatterTimeout = setTimeout(() => {
+          shards = shatterCalc;
+          shards[0].debug = true;
+        }, 3000);
       }
-    }
 
-    // Initialize when page loads
-    window.onload = function () {
-      setInterval(render, 30);
-    };
-  </script>
-</body>
+      squareShatter();
 
+      // loop checker
+      setInterval(() => {
+        if (!loop || shards.length <= 1) {
+          return;
+        }
+
+        const allStationary = shards.reduce(
+          (prev, curr) => prev && curr.stationary,
+          true,
+        );
+
+        if (allStationary) {
+          squareShatter();
+        }
+      }, 1000);
+
+      // --- Buffers ---
+      function initBuffers() {
+        // we will bind them to our shards later
+        posBuffer = gl.createBuffer();
+        // gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+        // gl.bufferData(gl.ARRAY_BUFFER, positions, gl.STATIC_DRAW);
+
+        colorBuffer = gl.createBuffer();
+        // gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+        // gl.bufferData(gl.ARRAY_BUFFER, colors, gl.STATIC_DRAW);
+      }
+
+      initBuffers();
+
+      function initShaderProgram() {
+        try {
+          program = createProgram(gl, vsEditor.value, fsEditor.value);
+          gl.useProgram(program);
+          posLoc = gl.getAttribLocation(program, "aPosition");
+          colorLoc = gl.getAttribLocation(program, "aColor");
+          timeLoc = gl.getUniformLocation(program, "uTime");
+        } catch (e) {
+          console.error(e);
+        }
+      }
+
+      initShaderProgram();
+
+      //hot compile when any input in the playground text area
+      vsEditor.onkeyup = initShaderProgram;
+      fsEditor.onkeyup = initShaderProgram;
+
+      function render() {
+        // clear the canvas
+        gl.clearColor(0, 0, 0, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        gl.enable(gl.DEPTH_TEST);
+
+        // delta time in ms
+        let currentTime = Date.now();
+        // we're interested in timestep for animation
+        let deltaTime = (currentTime - prevTime) / 1000.0;
+        prevTime = currentTime;
+
+        // set overall time in seconds
+        gl.uniform1f(timeLoc, (currentTime - startTime) / 1000.0);
+
+        for (let shard of shards) {
+          shard.update(deltaTime);
+
+          // Position buffer binding
+          gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
+          gl.bufferData(gl.ARRAY_BUFFER, shard.points, gl.STATIC_DRAW);
+          gl.enableVertexAttribArray(posLoc);
+          gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
+
+          // Color buffer binding
+          gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
+          gl.bufferData(gl.ARRAY_BUFFER, shard.colors, gl.STATIC_DRAW);
+          gl.enableVertexAttribArray(colorLoc);
+          gl.vertexAttribPointer(colorLoc, 3, gl.FLOAT, false, 0, 0);
+
+          // Draw content (current shard)
+          // gl.drawArrays(gl.TRIANGLES, 0, 3);
+          gl.drawArrays(gl.TRIANGLES, 0, shard.points.length / 3);
+        }
+      }
+
+      // Initialize when page loads
+      window.onload = function () {
+        setInterval(render, 30);
+      };
+    </script>
+  </body>
 </html>
