@@ -24,7 +24,7 @@ class Shard {
     // float32 arrays for points & colors
     this.points = new Float32Array(points);
     this.stationary = stationary;
-    this.debug=false;
+    this.debug = false;
 
     if (!!colors) {
       // use passed colors
@@ -32,6 +32,7 @@ class Shard {
     } else {
       // random color for the entire shape
       let color = [Math.random(), Math.random(), Math.random()];
+
       this.colors = new Float32Array(this.points.length);
       for (let i = 0; i < this.colors.length; i += 3) {
         this.colors[i] = color[0];
@@ -57,26 +58,22 @@ class Shard {
       return;
     }
     // update the speed, ie pull it down via gravity
-    this.speed[1] -= 9.81 * timestep; 
-    
-    let dx = this.speed[0] * timestep / 10;
-    let dy = this.speed[1] * timestep / 10;
-    
-    // if(this.debug == true){
-    //     console.log(dx, dy, this.points);
-    // }
+    this.speed[1] -= 9.81 * timestep;
 
-    let below_screen = true
+    let dx = (this.speed[0] * timestep) / 10;
+    let dy = (this.speed[1] * timestep) / 10;
+
+    let below_screen = true;
     // update position (add speed vec)
     for (let i = 0; i < this.points.length; i += 3) {
-        this.points[i] += dx;
-        this.points[i + 1] += dy;
+      this.points[i] += dx;
+      this.points[i + 1] += dy;
 
-        // -1 works as a cuttoff but -2 just in case i want to zoom out later
-        below_screen = below_screen && this.points[i + 1] < -2;
+      // -1 works as a cuttoff but -2 just in case i want to zoom out later
+      below_screen = below_screen && this.points[i + 1] < -2;
     }
 
-    if (below_screen){
+    if (below_screen) {
       this.stationary = true;
     }
 
@@ -453,7 +450,14 @@ function shatterFaces(x_lim, y_lim, shatter_pt, n_pts = 5, connections = 1) {
  *
  * @returns {[Shard]}                       List of shard objects
  */
-function shatter(x_lim, y_lim, shatter_pt, n_pts = 5, connections = 1) {
+function shatter(
+  x_lim,
+  y_lim,
+  shatter_pt,
+  n_pts = 5,
+  connections = 1,
+  chaos = 4,
+) {
   const faces = shatterFaces(x_lim, y_lim, shatter_pt, n_pts, connections);
 
   return faces.map((face) => {
@@ -475,8 +479,8 @@ function shatter(x_lim, y_lim, shatter_pt, n_pts = 5, connections = 1) {
     // TOLERANCE is too small to use here...
     const force = 20.0 + Math.random() * 10.0;
     if (distance > 0.001) {
-      vx = (vx / (1 + distance)) * force;
-      vy = (vy / (1 + distance)) * force;
+      vx = (vx / (1 + distance) + (chaos * Math.random() - chaos / 2)) * force;
+      vy = (vy / (1 + distance) + (chaos * Math.random() - chaos / 2)) * force;
     }
 
     // need to turn some faces into triangles

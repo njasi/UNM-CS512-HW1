@@ -46,7 +46,7 @@
               <td>
                 <label>Replay animation</label>
               </td>
-              <td>
+              <td colspan="2">
                 <button onclick="squareShatter()">Shatter</button>
               </td>
             </tr>
@@ -54,7 +54,7 @@
               <td>
                 <label>Loop Animation</label>
               </td>
-              <td>
+              <td colspan="2">
                 <input id="loopInput" type="checkbox" checked="true">
               </td>
             </tr>
@@ -62,16 +62,27 @@
               <td>
                 <label>Shatter Points</label>
               </td>
+              <td><span id="shatterPointsValue">40</span></td>
               <td>
-                <input type="range" value="40" min="5" max="60">
+                <input class="configInput" name="shatterPoints" type="range" value="40" min="5" max="60">
               </td>
             </tr>
             <tr>
               <td>
-                <label>Shatter Lines (per point)</label>
+                <label>Shatter Lines </label>
               </td>
+              <td>x<span id="shatterConnectionsValue">2</span></td>
               <td>
-                <input type="range" value="2" min="1" max="10">
+                <input class="configInput" name="shatterConnections" type="range" value="2" min="1" max="3">
+              </td>
+            </tr>
+            <tr>
+              <td>
+                <label>Chaos </label>
+              </td>
+              <td><span id="chaosValue">0.2</span></td>
+              <td>
+                <input name="chaos" class="configInput" type="range" value="0.2" min="0.1" max="1" step="0.05">
               </td>
             </tr>
           </table>
@@ -79,14 +90,26 @@
       </div>
       <script>
         // setting handling
-        let loop = true, shatterPoints = 40, shatterConnections=1;
+        let loop = true;
+        let config = {
+          "shatterPoints" : 40,
+          "shatterConnections" : 2,
+          "chaos" : 0.2
+        }
+        
 
         function handleLoop(event){
-          console.log("loop", loop, event.target.checked)
           loop = event.target.checked;
         }
 
-        document.getElementById("loopInput").addEventListener("onChange", handleLoop)
+        function handleConfig(event){
+          const name = event.target.name;
+          config[name] = parseFloat(event.target.value);
+          document.getElementById(name + "Value").innerText = config[name];
+        }
+
+        document.getElementById("loopInput").addEventListener("change", handleLoop);
+        [...document.getElementsByClassName("configInput")].forEach(ele => ele.addEventListener("change", handleConfig))
       </script>
       <div>
         <b>Vertex Shader</b><br>
@@ -203,7 +226,6 @@
     let prevTime = startTime;
 
     function squareShatter(){
-      console.log("resetting shatter")
       // reset the time
       startTime = Date.now();
       prevTime = startTime;
@@ -220,7 +242,7 @@
       shatterCalc = []
       // calcuate shatter ahead of time
       shatterTimeout = setTimeout(() => {
-        shatterCalc = shatter(1, 1, [Math.random(), Math.random()], shatterPoints, shatterConnections);
+        shatterCalc = shatter(1, 1, [Math.random(), Math.random()], config["shatterPoints"], config["shatterConnections"], config["chaos"]);
       }, 0)
   
       // make the pane shatter after 3 seconds by replacing with shards lol
