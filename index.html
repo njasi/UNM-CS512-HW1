@@ -28,6 +28,10 @@
         /* maybe use if can figure out correct transparency */
         /* background: url('https://getwallpapers.com/wallpaper/full/2/5/4/727006-best-windows-xp-desktop-backgrounds-3840x2160.jpg') center/cover; */
       }
+
+      .fancy-box td:nth-child(2){
+        min-width: 2rem;
+      }
     </style>
   </head>
   <body>
@@ -154,7 +158,7 @@
             .getElementById("loopInput")
             .addEventListener("change", handleLoop);
           [...document.getElementsByClassName("configInput")].forEach((ele) =>
-            ele.addEventListener("change", handleConfig),
+            ele.addEventListener("input", handleConfig),
           );
         </script>
         <div>
