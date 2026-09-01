@@ -40,7 +40,8 @@
       Edit vertex and fragment shaders on the left, and you can see the result
       on the right instantly. <br />
       The various parts of the shatter animation can be modified in the Settings
-      panel to the left
+      panel to the left<br />
+      Source code is available on <a href="https://github.com/njasi/UNM-CS512-HW1">github</a>
     </p>
 
     <div style="display: flex; gap: 10px; align-items: flex-start">
@@ -131,6 +132,23 @@
                   />
                 </td>
               </tr>
+              <tr>
+                <td>
+                  <label>Speed </label>
+                </td>
+                <td>x<span id="speedValue">1</span></td>
+                <td>
+                  <input
+                    name="speed"
+                    class="configInput"
+                    type="range"
+                    value="1"
+                    min="0.1"
+                    max="2"
+                    step="0.1"
+                  />
+                </td>
+              </tr>
             </table>
           </div>
         </div>
@@ -141,7 +159,8 @@
             shatterPoints: 40,
             shatterConnections: 2,
             chaos: 0.2,
-            trans: 0.9
+            trans: 0.9,
+            speed: 1.0
           };
 
           function handleLoop(event) {
@@ -304,7 +323,7 @@
         shatterTimeout = setTimeout(() => {
           shards = shatterCalc;
           shards[0].debug = true;
-        }, 3000);
+        }, 3000 / config["speed"]);
       }
 
       squareShatter();
@@ -375,10 +394,10 @@
 
 
         // set overall time in seconds
-        gl.uniform1f(timeLoc, (currentTime - startTime) / 1000.0);
+        gl.uniform1f(timeLoc, config["speed"] * (currentTime - startTime) / (1000.0));
 
         for (let shard of shards) {
-          shard.update(deltaTime);
+          shard.update(deltaTime * config["speed"]);
 
           // Position buffer binding
           gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
